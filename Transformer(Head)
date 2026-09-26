@@ -1,0 +1,230 @@
+import torch
+import torch.nn as nn
+import math
+
+
+# =========================
+# 1. 参数
+# =========================
+
+batch_size = 2
+seq_len = 4
+vocab_size = 100
+
+d_model = 8
+num_heads = 2
+
+d_head = d_model // num_heads
+
+
+# =========================
+# 2. Token IDs
+# =========================
+
+tokens = torch.tensor([
+    [10, 20, 30, 40],
+    [50, 60, 70, 80]
+])
+
+
+# =========================
+# 3. Token Embedding
+# =========================
+
+token_embedding = nn.Embedding(
+    vocab_size,
+    d_model
+)
+
+X_token = token_embedding(tokens)
+
+
+# =========================
+# 4. Position Embedding
+# =========================
+
+position_embedding = nn.Embedding(
+    seq_len,
+    d_model
+)
+
+positions = torch.arange(seq_len)
+
+X_position = position_embedding(positions)
+
+
+# =========================
+# 5. 得到 Transformer 输入
+# =========================
+
+X = X_token + X_position
+
+print("X shape:")
+print(X.shape)
+
+
+# =========================
+# 6. Q、K、V 投影
+# =========================
+
+W_Q = nn.Linear(
+    d_model,
+    d_model,
+    bias=False
+)
+
+W_K = nn.Linear(
+    d_model,
+    d_model,
+    bias=False
+)
+
+W_V = nn.Linear(
+    d_model,
+    d_model,
+    bias=False
+)
+
+Q = W_Q(X)
+K = W_K(X)
+V = W_V(X)
+
+print("\n原始 Q shape:")
+print(Q.shape)
+
+
+# =========================
+# 7. 拆分多个 Head
+# =========================
+
+Q = Q.reshape(
+    batch_size,
+    seq_len,
+    num_heads,
+    d_head
+)
+
+K = K.reshape(
+    batch_size,
+    seq_len,
+    num_heads,
+    d_head
+)
+
+V = V.reshape(
+    batch_size,
+    seq_len,
+    num_heads,
+    d_head
+)
+
+print("\nreshape 后 Q shape:")
+print(Q.shape)
+
+
+# =========================
+# 8. 调整维度顺序
+# =========================
+
+Q = Q.transpose(1, 2)
+K = K.transpose(1, 2)
+V = V.transpose(1, 2)
+
+print("\ntranspose 后 Q shape:")
+print(Q.shape)
+
+
+# =========================
+# 9. Attention Scores
+# =========================
+
+scores = torch.matmul(
+    Q,
+    K.transpose(-2, -1)
+)
+
+scores = scores / math.sqrt(d_head)
+
+print("\nscores shape:")
+print(scores.shape)
+
+
+# =========================
+# 10. Causal Mask
+# =========================
+
+mask = torch.triu(
+    torch.ones(seq_len, seq_len),
+    diagonal=1
+)
+
+scores = scores.masked_fill(
+    mask == 1,
+    float("-inf")
+)
+
+
+# =========================
+# 11. Softmax
+# =========================
+
+attention_weights = torch.softmax(
+    scores,
+    dim=-1
+)
+
+print("\nattention weights shape:")
+print(attention_weights.shape)
+
+
+# =========================
+# 12. Attention × V
+# =========================
+
+output = torch.matmul(
+    attention_weights,
+    V
+)
+
+print("\n每个 Head 输出 shape:")
+print(output.shape)
+
+
+# =========================
+# 13. 把 Head 顺序换回来
+# =========================
+
+output = output.transpose(1, 2)
+
+print("\ntranspose 回来后:")
+print(output.shape)
+
+
+# =========================
+# 14. 合并所有 Head
+# =========================
+
+output = output.reshape(
+    batch_size,
+    seq_len,
+    d_model
+)
+
+print("\n合并 Head 后:")
+print(output.shape)
+
+
+# =========================
+# 15. Output Projection
+# =========================
+
+W_O = nn.Linear(
+    d_model,
+    d_model,
+    bias=False
+)
+
+output = W_O(output)
+
+print("\n最终 Multi-Head Attention output:")
+print(output.shape)
