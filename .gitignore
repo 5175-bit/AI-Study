@@ -1,4 +1,6 @@
 .ipynb_checkpoints/
 .vscode/
 __pycache__/
-*.pyc
+
+# 第八周轨迹预测项目的模型权重
+trajectory_prediction_week8/checkpoints/

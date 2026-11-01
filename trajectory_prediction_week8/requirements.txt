@@ -1,0 +1,5 @@
+# 轨迹预测实验的主要第三方依赖
+# 版本暂不固定；请根据本机已验证的 ai-study 环境补充版本号。
+torch
+numpy
+matplotlib
